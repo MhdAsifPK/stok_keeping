@@ -1,0 +1,19 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // Materials: login ചെയ്തവർക്ക് കാണാം/ചേർക്കാം/തിരുത്താം. Delete പറ്റില്ല.
+    match /items/{id} {
+      allow read, create, update: if request.auth != null;
+      allow delete: if false;
+    }
+    // Stock In/Out records: ചേർക്കാൻ മാത്രം. തിരുത്താനോ മായ്ക്കാനോ പറ്റില്ല.
+    match /moves/{id} {
+      allow read: if request.auth != null;
+      allow create: if request.auth != null
+        && request.resource.data.qty is number
+        && request.resource.data.qty > 0
+        && request.resource.data.type in ['in','out'];
+      allow update, delete: if false;
+    }
+  }
+}

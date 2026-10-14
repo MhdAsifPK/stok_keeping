@@ -1,0 +1,147 @@
+<!DOCTYPE html>
+<html lang="ml">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Stock Keeper</title>
+<style>
+:root{--bg:#f6f7f9;--card:#fff;--tx:#1b1f24;--mut:#667085;--bd:#e2e5ea;--pri:#1d4ed8;--ok:#15803d;--bad:#b91c1c;--warn:#b45309;--okbg:#dcfce7;--badbg:#fee2e2;--warnbg:#fef3c7;
+box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#111418;--card:#1a1f26;--tx:#e8eaee;--mut:#98a2b3;--bd:#2a313b;--pri:#6b9bff;--ok:#4ade80;--bad:#f87171;--warn:#fbbf24;--okbg:#14301f;--badbg:#3a1717;--warnbg:#3a2b10}}
+:root[data-theme="dark"]{--bg:#111418;--card:#1a1f26;--tx:#e8eaee;--mut:#98a2b3;--bd:#2a313b;--pri:#6b9bff;--ok:#4ade80;--bad:#f87171;--warn:#fbbf24;--okbg:#14301f;--badbg:#3a1717;--warnbg:#3a2b10}
+html{scroll-padding-top:env(safe-area-inset-top,0px)}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--tx);font:15px/1.45 system-ui,-apple-system,"Noto Sans Malayalam",sans-serif}
+.wrap{max-width:980px;margin:0 auto;padding:14px}
+h1{font-size:20px;margin:0}
+header{display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:10px}
+.live{font-size:12px;color:var(--mut)}.dot{display:inline-block;width:8px;height:8px;border-radius:50%;background:var(--ok);margin-right:4px}
+.dot.off{background:var(--bad)}
+.bar{display:flex;gap:8px;flex-wrap:wrap;margin:10px 0}
+input,select,textarea,button{font:inherit;color:var(--tx);background:var(--card);border:1px solid var(--bd);border-radius:8px;padding:8px 10px}
+button{cursor:pointer}button.pri{background:var(--pri);color:#fff;border-color:var(--pri)}
+button.in{color:var(--ok);border-color:var(--ok)}button.out{color:var(--bad);border-color:var(--bad)}
+.grow{flex:1;min-width:140px}
+.tabs button{border-radius:8px 8px 0 0}.tabs button.on{background:var(--pri);color:#fff}
+.box{background:var(--card);border:1px solid var(--bd);border-radius:10px;overflow-x:auto}
+table{border-collapse:collapse;width:100%;min-width:560px}
+th,td{padding:9px 10px;border-bottom:1px solid var(--bd);text-align:left;white-space:nowrap}
+th{font-size:12px;color:var(--mut);text-transform:uppercase}
+td.n{text-align:right;font-variant-numeric:tabular-nums}
+.tag{padding:2px 8px;border-radius:99px;font-size:12px}
+.t-ok{background:var(--okbg);color:var(--ok)}.t-low{background:var(--warnbg);color:var(--warn)}.t-zero{background:var(--badbg);color:var(--bad)}
+.cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:8px;margin-bottom:10px}
+.c{background:var(--card);border:1px solid var(--bd);border-radius:10px;padding:10px}.c b{font-size:22px;display:block}
+dialog{border:1px solid var(--bd);border-radius:12px;background:var(--card);color:var(--tx);width:min(92vw,400px);padding:16px}
+dialog::backdrop{background:#0008}
+label{display:block;font-size:13px;color:var(--mut);margin:8px 0 3px}dialog input,dialog select,dialog textarea{width:100%}
+.row{display:flex;gap:8px;justify-content:flex-end;margin-top:14px}
+.msg{padding:10px;border-radius:8px;background:var(--warnbg);color:var(--warn);margin-bottom:10px;display:none}
+.empty{padding:24px;text-align:center;color:var(--mut)}
+</style>
+</head>
+<body>
+<div class="wrap">
+<div id="login" style="display:none;position:fixed;inset:0;background:var(--bg);z-index:9;align-items:center;justify-content:center"><div class="c" style="width:min(92vw,340px)"><h1>📦 Stock Keeper</h1><label>Email</label><input id="lE" type="email" style="width:100%"><label>Password</label><input id="lP" type="password" style="width:100%"><div class="msg" id="lM" style="margin-top:10px"></div><div class="row"><button class="pri" id="lB">Login</button></div></div></div>
+<header><h1>📦 Stock Keeper <span style="font-weight:400;color:var(--mut);font-size:14px">· Raw Material</span></h1>
+<div class="live"><span class="dot off" id="dot"></span><span id="st">connecting…</span> · <span id="who"></span> <button id="out" style="padding:3px 8px">Logout</button></div></header>
+<div class="msg" id="msg"></div>
+<div class="cards"><div class="c"><span class="live">Materials</span><b id="k1">0</b></div><div class="c"><span class="live">Low stock</span><b id="k2">0</b></div><div class="c"><span class="live">Out of stock</span><b id="k3">0</b></div></div>
+<div class="tabs"><button class="on" data-t="s">Stock</button> <button data-t="h">History</button></div>
+<div class="bar">
+<input class="grow" id="q" placeholder="Search material…">
+<select id="cat"><option value="">All categories</option></select>
+<button class="pri" id="addItem">+ New Material</button>
+<button id="csv">⬇ Backup CSV</button>
+</div>
+<div class="box" id="view"></div>
+</div>
+
+<dialog id="dI"><h3 style="margin:0">New Material</h3>
+<label>Name</label><input id="iN" list="sug" placeholder="e.g. PVC Sheet 0.76mm">
+<datalist id="sug"><option>PVC Sheet White</option><option>PVC Sheet Transparent</option><option>Lanyard Ribbon (Blue)</option><option>Lanyard Ribbon (Red)</option><option>Lanyard Hook</option><option>ID Card Holder</option><option>OP Card Paper</option><option>Printer Ribbon</option><option>Lamination Pouch</option><option>Ink</option></datalist>
+<label>Category</label><input id="iC" list="cats" placeholder="PVC / Lanyard / Paper / Ink…"><datalist id="cats"></datalist>
+<label>Unit</label><select id="iU"><option>Nos</option><option>Sheets</option><option>Kg</option><option>Meter</option><option>Roll</option><option>Pack</option><option>Box</option><option>Litre</option></select>
+<label>Minimum level (alert below this)</label><input id="iM" type="number" min="0" value="0">
+<label>Opening stock</label><input id="iO" type="number" min="0" value="0">
+<div class="row"><button onclick="dI.close()">Cancel</button><button class="pri" id="saveI">Save</button></div></dialog>
+
+<dialog id="dM"><h3 style="margin:0" id="mT"></h3>
+<label>Quantity</label><input id="mQ" type="number" min="0" step="any">
+<label>Note (supplier / job / bill no.)</label><input id="mN">
+<div class="row"><button onclick="dM.close()">Cancel</button><button class="pri" id="saveM">Save</button></div></dialog>
+
+<script type="module">
+import {initializeApp} from "https://www.gstatic.com/firebasejs/10.14.1/firebase-app.js";
+import {getAuth,onAuthStateChanged,signInWithEmailAndPassword,signOut} from "https://www.gstatic.com/firebasejs/10.14.1/firebase-auth.js";
+import {getFirestore,collection,addDoc,onSnapshot} from "https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore.js";
+// ====== PASTE YOUR FIREBASE CONFIG HERE (Project settings > Your apps > Web app) ======
+const firebaseConfig={apiKey:"PASTE",authDomain:"PASTE",projectId:"PASTE",storageBucket:"PASTE",messagingSenderId:"PASTE",appId:"PASTE"};
+// =======================================================================================
+const app=initializeApp(firebaseConfig),auth=getAuth(app),db=getFirestore(app);
+const $=id=>document.getElementById(id);
+let items=[],moves=[],tab='s',cur=null,curType='in',me='',unsubs=[];
+const esc=s=>String(s??'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+function msg(t){const m=$('msg');m.textContent=t;m.style.display=t?'block':'none'}
+function stockOf(id){let s=0;for(const m of moves)if(m.itemId===id)s+=m.type==='in'?m.qty:-m.qty;return Math.round(s*1000)/1000}
+function status(it,s){return s<=0?['zero','Out']:s<=(it.min||0)?['low','Low']:['ok','OK']}
+function render(){
+  const q=$('q').value.toLowerCase(),cf=$('cat').value;
+  const act=items.filter(i=>!i.archived);
+  const cats=[...new Set(act.map(i=>i.category).filter(Boolean))].sort();
+  $('cat').innerHTML='<option value="">All categories</option>'+cats.map(c=>`<option ${c===cf?'selected':''}>${esc(c)}</option>`).join('');
+  $('cats').innerHTML=cats.map(c=>`<option>${esc(c)}</option>`).join('');
+  let low=0,zero=0;const rows=act.map(i=>({i,s:stockOf(i.id)}));
+  rows.forEach(r=>{const k=status(r.i,r.s)[0];if(k==='low')low++;if(k==='zero')zero++});
+  $('k1').textContent=act.length;$('k2').textContent=low;$('k3').textContent=zero;
+  if(tab==='s'){
+    const f=rows.filter(r=>(!q||r.i.name.toLowerCase().includes(q))&&(!cf||r.i.category===cf)).sort((a,b)=>a.i.name.localeCompare(b.i.name));
+    $('view').innerHTML=f.length?`<table><tr><th>Material</th><th>Category</th><th class="n">Stock</th><th>Unit</th><th class="n">Min</th><th>Status</th><th></th></tr>`+f.map(({i,s})=>{const[k,l]=status(i,s);return `<tr><td><b>${esc(i.name)}</b></td><td>${esc(i.category)}</td><td class="n"><b>${s}</b></td><td>${esc(i.unit)}</td><td class="n">${i.min||0}</td><td><span class="tag t-${k}">${l}</span></td><td><button class="in" data-a="in" data-id="${i.id}">+ In</button> <button class="out" data-a="out" data-id="${i.id}">− Out</button></td></tr>`}).join('')+'</table>':'<div class="empty">No materials yet. Tap “+ New Material”.</div>';
+  }else{
+    const im=Object.fromEntries(items.map(i=>[i.id,i]));
+    const f=moves.filter(m=>!q||(im[m.itemId]?.name||'').toLowerCase().includes(q)).sort((a,b)=>b.ts-a.ts).slice(0,300);
+    $('view').innerHTML=f.length?`<table><tr><th>Date</th><th>Material</th><th>Type</th><th class="n">Qty</th><th>Note</th><th>By</th></tr>`+f.map(m=>`<tr><td>${new Date(m.ts).toLocaleString()}</td><td>${esc(im[m.itemId]?.name)}</td><td><span class="tag t-${m.type==='in'?'ok':'zero'}">${m.type==='in'?'IN':'OUT'}</span></td><td class="n">${m.qty}</td><td>${esc(m.note)}</td><td>${esc(m.by)}</td></tr>`).join('')+'</table>':'<div class="empty">No history yet.</div>';
+  }
+}
+document.querySelector('.tabs').onclick=e=>{const t=e.target.dataset.t;if(!t)return;tab=t;document.querySelectorAll('.tabs button').forEach(b=>b.classList.toggle('on',b.dataset.t===t));render()};
+$('q').oninput=render;$('cat').onchange=render;
+$('addItem').onclick=()=>{['iN','iC'].forEach(i=>$(i).value='');$('iM').value=0;$('iO').value=0;$('dI').showModal()};
+$('saveI').onclick=async()=>{
+  const name=$('iN').value.trim();if(!name)return $('iN').focus();
+  if(items.some(i=>!i.archived&&i.name.toLowerCase()===name.toLowerCase()))return alert('This material already exists.');
+  try{
+    const ref=await addDoc(collection(db,'items'),{name,category:$('iC').value.trim(),unit:$('iU').value,min:+$('iM').value||0,by:me,ts:Date.now()});
+    const o=+$('iO').value;if(o>0)await addDoc(collection(db,'moves'),{itemId:ref.id,type:'in',qty:o,note:'Opening stock',by:me,ts:Date.now()});
+    $('dI').close();
+  }catch(e){msg('Could not save: '+e.message)}
+};
+$('view').onclick=e=>{const b=e.target.closest('button[data-a]');if(!b)return;cur=items.find(i=>i.id===b.dataset.id);curType=b.dataset.a;
+  $('mT').textContent=(curType==='in'?'Stock IN: ':'Stock OUT: ')+cur.name+' ('+stockOf(cur.id)+' '+cur.unit+')';$('mQ').value='';$('mN').value='';$('dM').showModal();$('mQ').focus()};
+$('saveM').onclick=async()=>{
+  const qty=+$('mQ').value;if(!(qty>0))return $('mQ').focus();
+  if(curType==='out'&&qty>stockOf(cur.id)&&!confirm('Quantity is more than current stock. Continue?'))return;
+  try{await addDoc(collection(db,'moves'),{itemId:cur.id,type:curType,qty,note:$('mN').value.trim(),by:me,ts:Date.now()});$('dM').close()}catch(e){msg('Could not save: '+e.message)}
+};
+$('csv').onclick=()=>{
+  const L=[['Material','Category','Unit','Stock','Min']].concat(items.filter(i=>!i.archived).map(i=>[i.name,i.category,i.unit,stockOf(i.id),i.min||0]));
+  L.push([]);L.push(['Date','Material','Type','Qty','Note','By']);const im=Object.fromEntries(items.map(i=>[i.id,i.name]));
+  moves.slice().sort((a,b)=>a.ts-b.ts).forEach(m=>L.push([new Date(m.ts).toISOString(),im[m.itemId],m.type,m.qty,m.note,m.by]));
+  const d='\ufeff'+L.map(r=>r.map(c=>'"'+String(c??'').replace(/"/g,'""')+'"').join(',')).join('\n');
+  const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([d],{type:'text/csv'}));a.download='stock-backup-'+new Date().toISOString().slice(0,10)+'.csv';a.click();
+};
+$('lB').onclick=async()=>{try{$('lM').style.display='none';await signInWithEmailAndPassword(auth,$('lE').value.trim(),$('lP').value)}catch(e){$('lM').textContent='Wrong email or password';$('lM').style.display='block'}};
+$('lP').onkeydown=e=>{if(e.key==='Enter')$('lB').click()};
+$('out').onclick=()=>signOut(auth);
+const er=e=>{$('dot').classList.add('off');$('st').textContent='error';msg('Sync error: '+e.message)};
+const ok=()=>{$('dot').classList.remove('off');$('st').textContent='Live'};
+onAuthStateChanged(auth,u=>{
+  unsubs.forEach(f=>f());unsubs=[];
+  if(!u){$('login').style.display='flex';items=[];moves=[];render();return}
+  $('login').style.display='none';me=u.email;$('who').textContent=me;
+  unsubs.push(onSnapshot(collection(db,'items'),s=>{items=s.docs.map(d=>({id:d.id,...d.data()}));ok();render()},er));
+  unsubs.push(onSnapshot(collection(db,'moves'),s=>{moves=s.docs.map(d=>({id:d.id,...d.data()}));ok();render()},er));
+});
+render();
+</script>
+</body>
+</html>
